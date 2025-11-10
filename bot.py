@@ -2,16 +2,16 @@
 import os
 from aiogram import Bot, Dispatcher, Router
 from aiogram.types import Message
+from aiogram.filters import Command
 from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_application
 from aiohttp import web
 
-# Получаем токен и URL из переменных окружения
 BOT_TOKEN = os.getenv("TELEGRAM_TOKEN")
 WEBHOOK_PATH = f"/webhook/{BOT_TOKEN}"
 WEBHOOK_URL = os.getenv("WEBHOOK_URL")
 
 router = Router()
-tasks = []  # временный список задач (в будущем — SQLite)
+tasks = []
 
 @router.message()
 async def add_task(message: Message):
@@ -19,7 +19,7 @@ async def add_task(message: Message):
     tasks.append({"user_id": message.from_user.id, "text": task})
     await message.answer(f"✅ Задача сохранена:\n\n{task}")
 
-@router.message(commands=["today"])
+@router.message(Command("today"))
 async def show_today(message: Message):
     if tasks:
         resp = "📝 Твои задачи:\n\n" + "\n".join(t["text"] for t in tasks)
@@ -32,7 +32,7 @@ async def on_startup(bot: Bot):
         await bot.set_webhook(WEBHOOK_URL)
         print(f"✅ Webhook установлен: {WEBHOOK_URL}")
     else:
-        print("⚠️ WEBHOOK_URL не задан — проверь Secrets в Render!")
+        print("⚠️ WEBHOOK_URL не задан!")
 
 def main():
     bot = Bot(token=BOT_TOKEN)
