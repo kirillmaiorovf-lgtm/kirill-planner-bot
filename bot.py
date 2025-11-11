@@ -3,7 +3,7 @@ import os
 import aiosqlite
 from aiogram import Bot, Dispatcher, Router
 from aiogram.types import Message
-from aiogram.filters import Command, ~Command
+from aiogram.filters import Command
 from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_application
 from aiohttp import web
 
