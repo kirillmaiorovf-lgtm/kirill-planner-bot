@@ -3,7 +3,7 @@ import os
 import aiosqlite
 from aiogram import Bot, Dispatcher, Router
 from aiogram.types import Message
-from aiogram.filters import Command, CommandObject
+from aiogram.filters import Command, ~Command
 from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_application
 from aiohttp import web
 
@@ -27,10 +27,9 @@ async def init_db():
         """)
         await db.commit()
 
-# Добавление задачи (только если это НЕ команда)
-@router.message(~Command())
+# Добавление задачи (только если это НЕ команда /start или /today)
+@router.message(~Command("start", "today"))
 async def add_task(message: Message):
-    # Проверяем, что сообщение не пустое
     if message.text.strip():
         await add_task_to_db(message.from_user.id, message.text.strip())
         await message.answer(f"✅ Задача сохранена:\n\n{message.text}")
