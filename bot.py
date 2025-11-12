@@ -61,10 +61,10 @@ async def suggest_tasks(text: str) -> list:
         payload = {
             "model": "deepseek-chat",
             "messages": [
-                {"role": "system", "content": "Ты помогаешь пользователю уточнить задачу. Предложи 3 варианта, как можно уточнить или дополнить задачу. Ответь в формате JSON: [{'text': '...'}, {'text': '...'}, {'text': '...'}]"},
+                {"role": "system", "content": "Ты — умный помощник по планированию задач. Твоя задача: анализировать ввод пользователя и предлагать 3 варианта уточнения. В каждом варианте укажи: 1. Полный текст задачи 2. Предлагаемое время (если не указано) 3. Решение: как выполнить задачу. Ответь в формате JSON: [{'text': '...', 'due': '...', 'solution': '...'}, {'text': '...', 'due': '...', 'solution': '...'}, {'text': '...', 'due': '...', 'solution': '...'}]"},
                 {"role": "user", "content": text}
             ],
-            "max_tokens": 150,
+            "max_tokens": 300,
             "temperature": 0.7
         }
 
@@ -74,7 +74,7 @@ async def suggest_tasks(text: str) -> list:
             import json
             return json.loads(content)
     except Exception:
-        return [text]
+        return [{"text": text, "due": "", "solution": "Не удалось сгенерировать решение"}]
 
 # --- Добавление задачи ---
 @router.message(~Command("start", "today"))
@@ -86,17 +86,18 @@ async def add_task(message: Message):
 
     # Умная корректировка
     suggestions = await suggest_tasks(text)
-    if len(suggestions) > 1:
-        keyboard = InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text=s["text"], callback_data=f"select_task:{s['text']}")]
-            for s in suggestions
-        ])
+    if len(suggestions) > 1 and 'solution' in suggestions[0]:
+        keyboard = InlineKeyboardMarkup(inline_keyboard=[])
+        for i, s in enumerate(suggestions, 1):
+            keyboard.inline_keyboard.append([
+                InlineKeyboardButton(text=f"{i}. {s['text']}", callback_data=f"select_task:{s['text']}")
+            ])
         await message.answer("Уточни задачу:", reply_markup=keyboard)
         return
 
     # Если один вариант — сохраняем
-    corrected_text = suggestions[0]
-    due_date = parse_date(corrected_text)
+    corrected_text = suggestions[0]['text']
+    due_date = parse_date(corrected_text) or parse_date(suggestions[0]['due'])
     await add_task_to_db(message.from_user.id, corrected_text, due_date)
 
     # Устанавливаем напоминание
@@ -163,7 +164,7 @@ async def show_today(message: Message):
             resp += f"{i}. {status} {task['text']}{due}\n"
             # Кнопка "Отметить"
             keyboard.inline_keyboard.append([
-                InlineKeyboardButton(text="✅ Отметить", callback_data=f"complete:{task['id']}")
+                InlineKeyboardButton(text=f"{i}. ✅ Отметить", callback_data=f"complete:{task['id']}")
             ])
     else:
         resp = "Нет задач. Напиши что-нибудь!"
