@@ -55,7 +55,7 @@ def parse_date(text: str) -> datetime | None:
 async def suggest_tasks(user_id: int, text: str) -> list:
     # Получаем контекст пользователя
     context = USER_CONTEXT.get(user_id, {"name": "Пользователь", "location": "Москва", "preferences": "любит готовить"})
-    
+
     if not DEEPSEEK_API_KEY:
         return [{"text": text, "due": "", "solution": "Не удалось сгенерировать решение", "category": "личное"}]
 
@@ -68,7 +68,7 @@ async def suggest_tasks(user_id: int, text: str) -> list:
         payload = {
             "model": "deepseek-chat",
             "messages": [
-                {"role": "system", "content": f"Ты — умный помощник по планированию задач. Твоя задача: анализировать ввод пользователя и предлагать 3 варианта уточнения. В каждом варианте укажи: 1. Полный текст задачи 2. Предлагаемое время (если не указано) 3. Решение: как выполнить задачу 4. Категория (работа, личное, важное). Ответь в формате JSON: [{'text': '...', 'due': '...', 'solution': '...', 'category': '...'}, {'text': '...', 'due': '...', 'solution': '...', 'category': '...'}, {'text': '...', 'due': '...', 'solution': '...', 'category': '...'}]"},
+                {"role": "system", "content": f"Ты — умный помощник по планированию задач. Твоя задача: анализировать ввод пользователя и предлагать 3 варианта уточнения. В каждом варианте укажи: 1. Полный текст задачи 2. Предлагаемое время (если не указано) 3. Решение: как выполнить задачу 4. Категория (работа, личное, важное). Ответь в формате JSON: [{{'text': '...', 'due': '...', 'solution': '...', 'category': '...'}}, {{'text': '...', 'due': '...', 'solution': '...', 'category': '...'}}, {{'text': '...', 'due': '...', 'solution': '...', 'category': '...'}}]"},
                 {"role": "user", "content": f"Пользователь: {context['name']}\nМестоположение: {context['location']}\nПредпочтения: {context['preferences']}\nЗадача: {text}"}
             ],
             "max_tokens": 500,
@@ -84,7 +84,7 @@ async def suggest_tasks(user_id: int, text: str) -> list:
         return [{"text": text, "due": "", "solution": "Не удалось сгенерировать решение", "category": "личное"}]
 
 # --- Добавление задачи ---
-@router.message(~Command("start", "today"))
+@router.message(~Command("start", "today", "week", "stats"))
 async def add_task(message: Message):
     text = message.text.strip()
     if not text:
@@ -233,7 +233,7 @@ async def edit_task_callback(callback_query):
         async with db.execute("SELECT text FROM tasks WHERE id = ?", (task_id,)) as cursor:
             row = await cursor.fetchone()
             if row:
-                await callback_query.message.edit_text(f"✏️ Редактируешь задачу:\n\n{row[0]}")
+                await callback_query.message.edit_text(f"✏️ Редактируешь задачу:\n\n{row[0]}\n\nНапиши новую задачу.")
             else:
                 await callback_query.message.edit_text("❌ Задача не найдена.")
 
