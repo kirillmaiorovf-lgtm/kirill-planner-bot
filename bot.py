@@ -140,7 +140,15 @@ async def add_task_to_db(user_id: int, text: str, due_date: datetime | None):
 async def get_tasks_from_db(user_id: int):
     async with aiosqlite.connect(DB_PATH) as db:
         async with db.execute("SELECT id, text, due_at, completed FROM tasks WHERE user_id = ?", (user_id,)) as cursor:
-            return [dict(row) async for row in cursor]
+            tasks = []
+            async for row in cursor:
+                tasks.append({
+                    "id": row[0],
+                    "text": row[1],
+                    "due_at": row[2],
+                    "completed": row[3]
+                })
+            return tasks
 
 # --- Команда /today ---
 @router.message(Command("today"))
@@ -194,23 +202,4 @@ async def on_startup(bot: Bot):
     await init_db()
     scheduler.start()
     if WEBHOOK_URL:
-        await bot.set_webhook(WEBHOOK_URL)
-        print(f"✅ Webhook установлен: {WEBHOOK_URL}")
-    else:
-        print("⚠️ WEBHOOK_URL не задан!")
-
-def main():
-    bot = Bot(token=BOT_TOKEN)
-    dp = Dispatcher()
-    dp.include_router(router)
-    dp.startup.register(on_startup)
-
-    app = web.Application()
-    SimpleRequestHandler(dispatcher=dp, bot=bot).register(app, path=WEBHOOK_PATH)
-    setup_application(app, dp, bot=bot)
-
-    port = int(os.getenv("PORT", 10000))
-    web.run_app(app, host="0.0.0.0", port=port)
-
-if __name__ == "__main__":
-    main()
+        await bot.set
