@@ -202,4 +202,23 @@ async def on_startup(bot: Bot):
     await init_db()
     scheduler.start()
     if WEBHOOK_URL:
-        await bot.set
+        await bot.set_webhook(WEBHOOK_URL)
+        print(f"✅ Webhook установлен: {WEBHOOK_URL}")
+    else:
+        print("⚠️ WEBHOOK_URL не задан!")
+
+def main():
+    bot = Bot(token=BOT_TOKEN)
+    dp = Dispatcher()
+    dp.include_router(router)
+    dp.startup.register(on_startup)
+
+    app = web.Application()
+    SimpleRequestHandler(dispatcher=dp, bot=bot).register(app, path=WEBHOOK_PATH)
+    setup_application(app, dp, bot=bot)
+
+    port = int(os.getenv("PORT", 10000))
+    web.run_app(app, host="0.0.0.0", port=port)
+
+if __name__ == "__main__":
+    main()
